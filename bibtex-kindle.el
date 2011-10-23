@@ -88,7 +88,7 @@
           (setq title (replace-regexp-in-string "\n" " " title))
           (setq title (replace-regexp-in-string "\[ \]+" " " title))
           (make-directory (concat bibtex-kindle-prefix "/" year) t)
-          (let* ((target (format "%s/%s.pdf" year citekey))
+          (let* ((target (format "%s/%s.pdf" year title))
                  (ftarget (concat bibtex-kindle-prefix "/" target)))
             (if (file-exists-p ftarget)
                 (message (format "File with name %s already exists" ftarget))
