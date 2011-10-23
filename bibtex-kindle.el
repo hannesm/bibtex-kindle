@@ -43,10 +43,8 @@
                         (mapc
                          'add-to-collection
                          (split-string keywords ",[ \n]*"))))))))))
-    (message "coll is %s" collections)
 
-
-      (with-temp-file (concat bibtex-kindle-prefix "/collections.json")
+    (with-temp-file (concat bibtex-kindle-prefix "/collections.json")
       (insert "{")
       (flet ((output-l
               (x)
@@ -91,9 +89,9 @@
               (citekey (cdr (assoc "=key=" entry))))
           (setq title (replace-regexp-in-string "\n" " " title))
           (setq title (replace-regexp-in-string "\[ \]+" " " title))
-          (make-directory (concat bibtex-kindle-prefix year) t)
+          (make-directory (concat bibtex-kindle-prefix "/" year) t)
           (let* ((target (format "%s/%s.pdf" year citekey))
-                 (ftarget (concat bibtex-kindle-prefix target)))
+                 (ftarget (concat bibtex-kindle-prefix "/" target)))
             (if (file-exists-p ftarget)
                 (message (format "File with name %s already exists" ftarget))
               (progn
