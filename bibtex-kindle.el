@@ -2,6 +2,10 @@
 
 (require 'sha1)
 
+;; TODO
+;; use proper last-access-time
+;; annotate authors as last1, first1 & last2, first2,... for better sorting!
+
 ;; prefix of files to push onto kindle
 (defvar bibtex-kindle-prefix "~/kindle")
 
