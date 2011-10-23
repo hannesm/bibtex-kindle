@@ -12,7 +12,7 @@
 (defun bibtex-kindle-export-collections (&optional arg)
   "Exports collections.json file from a bib file"
   (interactive "P")
-  (let ((collections (cons () ())))
+  (let (collections)
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "^@[a-zA-Z0-9]+{" nil t)
@@ -20,42 +20,49 @@
 	(let ((entry (bibtex-parse-entry t)))
           (if (assoc "kindle-file" entry)
               (let* ((filename (cdr (assoc "kindle-file" entry)))
-                     (reftype (cdr (assoc "=type=" entry)))
-                     (add-to-collection
-                      '(lambda (key)
+                     (reftype (cdr (assoc "=type=" entry))))
+                (flet ((add-to-collection
+                        (key)
                         (if (assoc key collections)
                             (add-to-list (cdr (assoc key collections)) filename)
-                          (setq collections cons((key . (list filename)) collections))))))
-                (if (string-equal reftype "inproceedings")
-                    (let* ((book (cdr (assoc "booktitle" entry)))
-                           (year (cdr (assoc "year" entry)))
-                           (key (concat book "-" year)))
-                      (add-to-collection key)))
-                (if (string-equal reftype "article")
-                    (let* ((journal (cdr (assoc "journal" entry)))
-                           (volume (cdr (assoc "volume" entry)))
-                           (key (concat journal volume)))
-                      (add-to-collection key)))
-            (let ((keywords (cdr (assoc "keywords" entry))))
-              (if (not (string-equal keywords ""))
-                  (mapc
-                   'add-to-collection
-                   (split-string keywords ",[ \n]*")))))))))
-    (with-temp-file (concat bibtex-kindle-prefix "/collections.json")
+                          (setq collections (cons (cons key (cons filename ())) collections)))))
+                  (message "reftype is %s" reftype)
+                  (if (string-equal reftype "inproceedings")
+                      (let* ((book (cdr (assoc "booktitle" entry)))
+                             (year (cdr (assoc "year" entry)))
+                             (key (concat book "-" year)))
+                        (message "found sth %s %s" key filename)
+                        (add-to-collection key)))
+                  (if (string-equal reftype "article")
+                      (let* ((journal (cdr (assoc "journal" entry)))
+                             (volume (cdr (assoc "volume" entry)))
+                             (key (concat journal volume)))
+                        (add-to-collection key)))
+                  (let ((keywords (cdr (assoc "keywords" entry))))
+                    (if (not (or (null keywords) (string-equal keywords "")))
+                        (mapc
+                         'add-to-collection
+                         (split-string keywords ",[ \n]*"))))))))))
+    (message "coll is %s" collections)
+
+
+      (with-temp-file (concat bibtex-kindle-prefix "/collections.json")
       (insert "{")
-      (let ((output-l
-             (lambda (x)
-               (insert
-                (mapconcat (lambda(f)
-                             (concat "\"*" (sha1 (concat "/mnt/us/documents/bib/" f)) "\""))
-                           x ",")))))
-        (let* ((output-c
-                (lambda (x)
-                  (insert (concat "\"" (car x) "@en-US\":{\"items\":["))
-                  (output-l (cdr x))
+      (flet ((output-l
+              (x)
+              (insert
+               (mapconcat (lambda(f)
+                            (concat "\"*" (sha1 (concat "/mnt/us/documents/bib/" f)) "\""))
+                          x ","))))
+        (let ((first 1))
+          (flet ((output-c
+                  (c)
+                  (if (= first 1) (setq first 2) (insert ","))
+                  (insert (concat "\"" (car c) "@en-US\":{\"items\":["))
+                  (output-l (cdr c))
                   ;; replace with last atime/mtime!
-                  (insert (concat "], \"lastAccess\":131863907336}")))))
-          (mapc output-c collections)))
+                  (insert (concat "], \"lastAccess\":131863907336}"))))
+            (mapc 'output-c collections))))
       (insert "}"))))
 
 (defun get-pdf (ask-message default-location)
@@ -105,5 +112,4 @@
 
 (provide 'bibtex-kindle)
 
-(flet ((f (x) (* x x)))
-  (f 2))
+
