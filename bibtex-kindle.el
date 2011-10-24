@@ -1,5 +1,9 @@
 ;;; bibtex-kinde.el --- Kindle utilities for BibTeX
 
+;; Copyleft 2011 Hannes Mehnert <hannes@mehnert.org>
+;; Available via https://github.com/hannesm/bibtex-kindle
+;; This code is public domain; all rights reversed.
+
 (require 'sha1)
 
 ;; TODO
