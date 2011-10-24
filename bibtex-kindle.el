@@ -5,6 +5,10 @@
 ;; TODO
 ;; use proper last-access-time
 ;; annotate authors as last1, first1 & last2, first2,... for better sorting!
+;; handle special characters correctly (how is it on kindle? how in pdf metadata?)
+;; maybe collections for authors?
+;; multiple bib files
+;; proper merge of collections?
 
 ;; prefix of files to push onto kindle
 (defvar bibtex-kindle-prefix "~/kindle")
