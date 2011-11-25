@@ -7,7 +7,6 @@
 (require 'sha1)
 
 ;; TODO
-;; use proper last-access-time
 ;; annotate authors as last1, first1 & last2, first2,... for better sorting!
 ;; handle special characters correctly (how is it on kindle? how in pdf metadata?)
 ;; maybe collections for authors?
@@ -20,6 +19,16 @@
 ;; path to pdftk binary
 (defvar bibtex-kindle-pdftk "/opt/local/bin/pdftk")
 
+(defun mtime-for-kindle (filename)
+  "returns modification time of file (as seconds from epoch with two additional digits)"
+  (let ((fn (concat bibtex-kindle-prefix "/" filename)))
+    (if (file-exists-p fn)
+        (let ((ttt (nth 5 (file-attributes fn 'string))))
+          ; hate 30 bits integers
+          (let ((pr (number-to-string (+ (* (float (lsh 1 16)) (car ttt)) (cadr ttt)))))
+            (store-substring pr (- (length pr) 2) "1")
+            pr))
+      "0")))
 
 (defun bibtex-kindle-export-collections (&optional arg)
   "Exports collections.json file from a bib file"
@@ -32,12 +41,22 @@
 	(let ((entry (bibtex-parse-entry t)))
           (if (assoc "kindle-file" entry)
               (let* ((filename (cdr (assoc "kindle-file" entry)))
+                     (mtime (mtime-for-kindle filename))
                      (reftype (cdr (assoc "=type=" entry))))
                 (flet ((add-to-collection
                         (key)
                         (if (assoc key collections)
-                            (add-to-list (cdr (assoc key collections)) filename)
-                          (setq collections (cons (cons key (cons filename ())) collections)))))
+                            (let* ((lastmtime (pop (cdr (assoc key collections))))
+                                   (nmtime (if (< (length lastmtime) (length mtime))
+                                               mtime
+                                             (if (< (length mtime) (length lastmtime))
+                                                 lastmtime
+                                               (if (string< lastmtime mtime)
+                                                 mtime
+                                                 lastmtime)))))
+                              (let ((col (cdr (assoc key collections))))
+                              (setcdr (assoc key collections) (cons nmtime (cons filename col)))))
+                          (setq collections (cons (cons key (cons mtime (cons filename ()))) collections)))))
                   (if (string-equal reftype "inproceedings")
                       (let* ((book (cdr (assoc "booktitle" entry)))
                              (year (cdr (assoc "year" entry)))
@@ -67,11 +86,12 @@
                   (c)
                   (if (= first 1) (setq first 2) (insert ","))
                   (insert (concat "\"" (car c) "@en-US\":{\"items\":["))
-                  (output-l (cdr c))
+                  (output-l (cddr c))
                   ;; replace with last atime/mtime!
-                  (insert (concat "], \"lastAccess\":131863907336}"))))
+                  (insert (concat "], \"lastAccess\":" (cadr c) "}"))))
             (mapc 'output-c collections))))
-      (insert "}"))))
+      (insert "}")))
+  (message (concat "Wrote output to " bibtex-kindle-prefix "/collections.json")))
 
 (defun get-pdf (ask-message default-location)
   ""
